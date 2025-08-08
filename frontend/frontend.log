@@ -1,0 +1,39 @@
+
+> frontend@0.0.0 start
+> ng serve
+
+❯ Building...
+✔ Building...
+Application bundle generation failed. [1.305 seconds]
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mTS2367: This comparison appears to be unintentional because the types '"dashboard"' and '"trends"' have no overlap.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard/dashboard.component.html:301:20:
+[37m      301 │         <div *ngIf="[32mcurrentView === 'trends'[37m" class="trends-view">
+          ╵                     [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DashboardComponent.
+
+    src/app/components/dashboard/dashboard.component.ts:45:15:
+[37m      45 │   templateUrl: [32m'./dashboard.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+Watch mode enabled. Watching for file changes...
+❯ Changes detected. Rebuilding...
+✔ Changes detected. Rebuilding...
+Application bundle generation failed. [0.572 seconds]
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mTS2367: This comparison appears to be unintentional because the types '"dashboard"' and '"trends"' have no overlap.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard/dashboard.component.html:301:20:
+[37m      301 │         <div *ngIf="[32mcurrentView === 'trends'[37m" class="trends-view">
+          ╵                     [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DashboardComponent.
+
+    src/app/components/dashboard/dashboard.component.ts:45:15:
+[37m      45 │   templateUrl: [32m'./dashboard.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+

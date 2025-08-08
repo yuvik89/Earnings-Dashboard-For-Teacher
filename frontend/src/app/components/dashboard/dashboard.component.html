@@ -1,0 +1,308 @@
+<div class="app-container">
+  <!-- Side Navigation -->
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav [opened]="sidenavOpened" mode="side" class="sidenav">
+      <!-- User Profile Section -->
+      <div class="user-profile" *ngIf="currentUser">
+        <div class="user-avatar">
+          <mat-icon>account_circle</mat-icon>
+        </div>
+        <div class="user-info">
+          <div class="user-name">{{ currentUser.firstName }} {{ currentUser.lastName }}</div>
+          <div class="user-subject">{{ currentUser.subject }} Teacher</div>
+        </div>
+      </div>
+      
+      <mat-divider></mat-divider>
+      
+      <!-- Navigation Menu -->
+      <div class="nav-menu">
+        <div 
+          *ngFor="let item of menuItems" 
+          [class.active-menu-item]="item.active"
+          (click)="selectMenuItem(item)"
+          class="nav-item">
+          <mat-icon class="nav-icon" [class.active-icon]="item.active">{{ item.icon }}</mat-icon>
+          <span class="nav-label">{{ item.label }}</span>
+        </div>
+      </div>
+      
+      <mat-divider></mat-divider>
+      
+      <!-- Quick Stats in Sidebar -->
+      <div class="sidebar-stats">
+        <div class="stat-item">
+          <mat-icon>people</mat-icon>
+          <div class="stat-info">
+            <div class="stat-number">{{ totalStudents }}</div>
+            <div class="stat-label">Students</div>
+          </div>
+        </div>
+        <div class="stat-item">
+          <mat-icon>event</mat-icon>
+          <div class="stat-info">
+            <div class="stat-number">{{ totalSessions }}</div>
+            <div class="stat-label">Sessions</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Logout Button in Sidebar -->
+      <div class="sidebar-footer">
+        <button mat-stroked-button color="warn" (click)="logout()" class="logout-btn">
+          <mat-icon class="logout-icon">logout</mat-icon>
+          <span class="logout-text">Logout</span>
+        </button>
+      </div>
+    </mat-sidenav>
+
+    <!-- Main Content -->
+    <mat-sidenav-content class="main-content">
+      <!-- Top Toolbar -->
+      <mat-toolbar color="primary" class="top-toolbar">
+        <button mat-icon-button (click)="toggleSidenav()" class="menu-toggle">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <span class="toolbar-title">Earnings Dashboard</span>
+        <span class="spacer"></span>
+        <span class="welcome-text" *ngIf="currentUser">
+          Welcome back, {{ currentUser.firstName }}!
+        </span>
+      </mat-toolbar>
+
+      <!-- Dashboard Content -->
+      <div class="dashboard-content" *ngIf="!isLoading">
+        <!-- Filters -->
+        <div class="filters-container">
+          <!-- Student Filter -->
+          <mat-card class="filter-card">
+            <mat-card-header>
+              <mat-card-title>Filter by Student</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Select Student</mat-label>
+                <mat-select [(value)]="selectedStudentId" (selectionChange)="onStudentFilterChange()">
+                  <mat-option [value]="null">All Students</mat-option>
+                  <mat-option *ngFor="let student of allStudents" [value]="student.studentId">
+                    {{ student.firstName }} {{ student.lastName }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Month/Year Filter -->
+          <mat-card class="filter-card">
+            <mat-card-header>
+              <mat-card-title>Filter by Month (2025)</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="month-year-filters">
+                <mat-form-field appearance="outline" class="month-field">
+                  <mat-label>Month</mat-label>
+                  <mat-select [(value)]="selectedMonth" (selectionChange)="onMonthYearFilterChange()">
+                    <mat-option [value]="null">All Months</mat-option>
+                    <mat-option *ngFor="let month of months" [value]="month.value">
+                      {{ month.name }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <button mat-raised-button color="accent" (click)="clearMonthYearFilter()" 
+                        [disabled]="!selectedMonth" class="clear-button">
+                  Clear
+                </button>
+              </div>
+              <div class="filter-info" *ngIf="selectedMonth">
+                <small>Showing data for: {{ getFilterDisplayText() }}</small>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Earnings Summary -->
+        <div class="summary-cards" *ngIf="earningsSummary">
+          <mat-card class="summary-card earnings-card">
+            <mat-card-header>
+              <mat-card-title>
+                {{ selectedMonth ? getFilterDisplayText() : (selectedStudentId ? getSelectedStudentName() + ' - Year to Date' : 'Year to Date') }}
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="earnings-amount">{{ formatCurrency(earningsSummary.yearToDate) }}</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="summary-card" *ngIf="!selectedMonth">
+            <mat-card-header>
+              <mat-card-title>
+                {{ selectedStudentId ? getSelectedStudentName() + ' - This Week' : 'This Week' }}
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="earnings-amount">{{ formatCurrency(earningsSummary.weekly) }}</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="summary-card upcoming-earnings" *ngIf="!selectedMonth">
+            <mat-card-header>
+              <mat-card-title>
+                {{ selectedStudentId ? getSelectedStudentName() + ' - Upcoming' : 'Upcoming Earnings' }}
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="earnings-amount">{{ formatCurrency(upcomingEarnings) }}</div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Performance Insights -->
+        <div class="insights-container" *ngIf="!selectedMonth">
+          <mat-card class="insight-card">
+            <mat-card-header>
+              <mat-card-title>
+                Top Performing Student
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div *ngIf="getTopPerformingStudent() as topStudent" class="top-student">
+                <div class="student-info">
+                  <h3>{{ topStudent.firstName }} {{ topStudent.lastName }}</h3>
+                  <p>Grade {{ topStudent.grade }} • {{ topStudent.country }}</p>
+                  <div class="earnings-highlight">{{ formatCurrency(topStudent.totalEarnings) }}</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="insight-card">
+            <mat-card-header>
+              <mat-card-title>
+                Average Performance
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="average-stats">
+                <div class="avg-item">
+                  <span class="avg-label">Avg Earnings per Student:</span>
+                  <span class="avg-value">{{ formatCurrency(getAverageEarningsPerStudent()) }}</span>
+                </div>
+                <div class="avg-item">
+                  <span class="avg-label">Avg Sessions per Student:</span>
+                  <span class="avg-value">{{ (totalSessions / totalStudents).toFixed(1) }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Tabs for detailed views -->
+        <mat-tab-group class="main-tabs">
+          <!-- Student Earnings Tab -->
+          <mat-tab label="Student Earnings">
+            <mat-card class="table-card">
+              <mat-card-header>
+                <mat-card-title>Student Details & Earnings</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <table mat-table [dataSource]="studentEarnings" class="full-width">
+                  <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef>Name</th>
+                    <td mat-cell *matCellDef="let student">
+                      {{ student.firstName }} {{ student.lastName }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="grade">
+                    <th mat-header-cell *matHeaderCellDef>Grade</th>
+                    <td mat-cell *matCellDef="let student">{{ student.grade }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="country">
+                    <th mat-header-cell *matHeaderCellDef>Country</th>
+                    <td mat-cell *matCellDef="let student">{{ student.country }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="contactNumber">
+                    <th mat-header-cell *matHeaderCellDef>Contact</th>
+                    <td mat-cell *matCellDef="let student">{{ student.contactNumber }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="registrationId">
+                    <th mat-header-cell *matHeaderCellDef>Registration ID</th>
+                    <td mat-cell *matCellDef="let student">{{ student.registrationId }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="totalSessions">
+                    <th mat-header-cell *matHeaderCellDef>Sessions</th>
+                    <td mat-cell *matCellDef="let student">{{ student.totalSessions }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="totalEarnings">
+                    <th mat-header-cell *matHeaderCellDef>Total Earnings</th>
+                    <td mat-cell *matCellDef="let student" class="earnings-cell">
+                      {{ formatCurrency(student.totalEarnings) }}
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="studentColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: studentColumns;"></tr>
+                </table>
+              </mat-card-content>
+            </mat-card>
+          </mat-tab>
+
+          <!-- Upcoming Sessions Tab -->
+          <mat-tab label="Upcoming Sessions">
+            <mat-card class="table-card">
+              <mat-card-header>
+                <mat-card-title>Upcoming Sessions</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <table mat-table [dataSource]="upcomingSessions" class="full-width">
+                  <ng-container matColumnDef="studentName">
+                    <th mat-header-cell *matHeaderCellDef>Student</th>
+                    <td mat-cell *matCellDef="let session">{{ session.studentName }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="sessionDateTime">
+                    <th mat-header-cell *matHeaderCellDef>Date & Time (UTC)</th>
+                    <td mat-cell *matCellDef="let session">
+                      {{ formatDateTime(session.sessionDateTime) }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="durationMinutes">
+                    <th mat-header-cell *matHeaderCellDef>Duration</th>
+                    <td mat-cell *matCellDef="let session">{{ session.durationMinutes }} min</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="expectedEarnings">
+                    <th mat-header-cell *matHeaderCellDef>Expected Earnings</th>
+                    <td mat-cell *matCellDef="let session" class="earnings-cell">
+                      {{ formatCurrency(session.expectedEarnings) }}
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="sessionColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: sessionColumns;"></tr>
+                </table>
+
+                <div *ngIf="upcomingSessions.length === 0" class="no-data">
+                  No upcoming sessions found.
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </mat-tab>
+        </mat-tab-group>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-container" *ngIf="isLoading">
+        <mat-spinner></mat-spinner>
+        <p>Loading dashboard data...</p>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>
